@@ -1,0 +1,46 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Node/Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+# Environment variables
+*.env
+.env.local
+
+# Log files
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+.coverage
+
+# Process IDs
+*.pid
+
+# User uploads
+uploads/
+media/
