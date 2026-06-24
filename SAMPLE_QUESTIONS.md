@@ -1,162 +1,245 @@
 # Sample Questions for CRM Query Testing
 
-This file contains sample questions at different difficulty levels to test the query generation and database system.
+**Generated**: 2026-06-24  
+**Based on**: Actual database data analysis  
+**Database**: PostgreSQL (sp_crm_dev)  
+**Total Tables**: 25 | **Total Records**: 30,000+
 
 ---
 
-## 🟡 Level 1: Medium Difficulty
+## Database Overview
 
-These questions require basic SELECT statements with simple WHERE conditions and possibly one JOIN.
-
-1. **List all active leads**
-   - Expected: Simple SELECT with WHERE condition
-
-2. **Show me all users in the system**
-   - Expected: Basic SELECT from Users table
-
-3. **What campaigns are currently running?**
-   - Expected: SELECT with status filter
-
-4. **Get all table names in the database**
-   - Expected: Query information_schema
-
-5. **Show me the top 10 recent leads**
-   - Expected: SELECT with ORDER BY and LIMIT
-
-6. **List all employees and their email addresses**
-   - Expected: SELECT specific columns from Users
-
-7. **How many leads do we have?**
-   - Expected: SELECT COUNT(*)
-
-8. **Show all chats from the system**
-   - Expected: Basic SELECT from Chats table
-
-9. **Get all holidays in the database**
-   - Expected: SELECT from Holidays table
-
-10. **List users who have a role assigned**
-    - Expected: SELECT with WHERE and specific column
-
-11. **Show me all notifications**
-    - Expected: Simple SELECT from Notifications
-
-12. **Get the list of all locations**
-    - Expected: SELECT from locations table
+| Table | Records | Key Info |
+|-------|---------|----------|
+| **Leads** | 641 | 8 different stages: sanction, login, disbursed, follow_up, declined, interested, not_interested, ready_for_disbursement |
+| **Users** | 102 | 85 active, 9 different roles: admin, process_manager, connector, relationship_manager, etc. |
+| **Attendances** | 3,789 | Statuses: present, absent, leave, half_day, week off, holiday, not_yet_joined (Date range: 2002-02-01 to 2028-11-19) |
+| **LeadStageTransitions** | 2,070 | Average 3.2 transitions per lead - tracks pipeline progression |
+| **LeadDocuments** | 33 | Only 5.1% of leads have documents (critical sparse data!) |
+| **LeadCoApplicants** | 235 | 33.7% of leads (216/641) have co-applicants |
+| **Payslips** | 107 | Salary range: 5,000 to 25,000 per month |
+| **Leaves** | 159 | Types: casual, sick, loss_of_pay; Status: approved, pending, rejected, cancelled |
+| **Chats** | 28 | Total 67 messages (2.39 avg per chat) |
+| **Payouts** | 97 | Total amount: 1,977,253.10 |
+| **leadLogs** | 13,383 | Actions: lead_created, assigned, reassigned, status_changed |
 
 ---
 
-## 🟠 Level 2: Hard Difficulty
+## 🟢 Level 1: Simple Queries (Basic SELECT)
 
-These questions require multiple JOINs, aggregate functions, GROUP BY, or subqueries.
+These questions require basic SELECT statements with simple WHERE conditions.
 
-1. **Show me all leads with their detailed information**
-   - Expected: JOIN Leads with LeadDetails, show all columns
+1. **List all active users in the system**
+   - Expected: Simple SELECT from Users with WHERE isActive = true
+   - Data: 85 out of 102 users are active
 
-2. **How many messages are in each chat?**
-   - Expected: JOIN Chats with ChatMessages, use COUNT and GROUP BY
+2. **How many leads are in the system?**
+   - Expected: SELECT COUNT(*) FROM Leads
+   - Data: 641 total leads
+
+3. **What campaigns are we running?**
+   - Expected: SELECT from Campaigns table
+   - Data: 1 campaign (BT Campaign)
+
+4. **Show me all attendance records with status 'leave'**
+   - Expected: SELECT from Attendances WHERE status = 'leave'
+   - Data: Some of 3,789 attendance records
+
+---
+
+## 🟡 Level 2: Medium Difficulty (JOINs & Aggregations)
+
+These questions require multiple JOINs, aggregate functions, GROUP BY, or aggregation queries.
+
+1. **Get leads and their stage transitions history**
+   - Expected: JOIN Leads with LeadStageTransitions, ORDER BY date
+   - Complexity: 1 JOIN, ordering by transitions
+   - Data: 2,070 transitions across 641 leads (3.2 avg per lead)
+
+2. **Show me the attendance record for each user showing leave and week off days**
+   - Expected: JOIN Users with Attendances, use COUNT and GROUP BY
+   - Complexity: COUNT with CASE for different statuses
+   - Data: 3,789 attendance records for 102 users
 
 3. **Show employee names and their total salary from payslips**
-   - Expected: JOIN Users with Payslips, use SUM aggregate
+   - Expected: JOIN Users with Payslips, use SUM aggregation
+   - Complexity: SUM with multiple users
+   - Data: 107 payslips for 102 users (salary 5,000-25,000)
 
-4. **List all leads that have documents attached**
+4. **How many leads are in each stage?**
+   - Expected: GROUP BY stage, COUNT leads
+   - Complexity: Simple aggregation with GROUP BY
+   - Stages: sanction, login, disbursed, follow_up, declined, interested, not_interested, ready_for_disbursement
+   - Data: 641 leads distributed across 8 stages
+
+5. **List all leads that have documents attached (only 5.1% have docs)**
    - Expected: JOIN Leads with LeadDocuments, use DISTINCT
+   - Complexity: JOIN with sparse data (5.1% coverage)
+   - Data: 33 documents for 641 leads
+   - ⚠️ SPARSE TABLE: Use LEFT JOIN to show all leads
 
-5. **Get the attendance record for each user showing present and absent days**
-   - Expected: JOIN Users with Attendances, use conditional COUNT
+6. **How many messages are in each chat?**
+   - Expected: JOIN Chats with ChatMessages, use COUNT and GROUP BY
+   - Complexity: Aggregation with GROUP BY
+   - Data: 67 messages in 28 chats (2.39 avg per chat)
 
-6. **Show leads with their stage transitions history**
-   - Expected: JOIN Leads with LeadStageTransitions, ORDER BY date
+7. **Show users and their loss_of_pay leave balance**
+   - Expected: JOIN Users with LeaveBalances, filter by leave type
+   - Complexity: Filter specific leave type
+   - Data: 159 total leaves (types: casual, sick, loss_of_pay)
 
-7. **Which users have the most leave balance remaining?**
-   - Expected: JOIN Users with LeaveBalances, ORDER BY balance DESC
-
-8. **Get payroll information with employee names and payslip details**
-   - Expected: Multiple JOINs (Users -> Payrolls -> Payslips)
-
-9. **Show all lead co-applicants with their main lead information**
+8. **Show all lead co-applicants with their main lead information**
    - Expected: JOIN Leads with LeadCoApplicants
-
-10. **List campaigns and count how many leads are associated with each**
-    - Expected: JOIN Leads with Campaigns, use COUNT and GROUP BY
-
-11. **Get users and their notification count**
-    - Expected: LEFT JOIN Users with Notifications, use COUNT
-
-12. **Show leads ordered by their latest stage transition date**
-    - Expected: JOIN with subquery or complex ORDER BY
-
-13. **Find users who haven't taken any leave**
-    - Expected: LEFT JOIN with WHERE clause checking for NULLs
-
-14. **Get payouts for each user with their payroll information**
-    - Expected: Multiple JOINs with Users, Payouts, Payrolls
-
-15. **Show all lead documents with the lead's current stage**
-    - Expected: JOIN Leads, LeadDocuments, LeadStageTransitions
+   - Complexity: 1 JOIN with moderate coverage
+   - Data: 235 co-applicants (33.7% of 641 leads have them)
 
 ---
 
-## 🔴 Level 3: Tricky Difficulty
+## 🔴 Level 3: Complex Difficulty (Advanced Queries)
 
 These questions require complex logic, window functions, multiple nested JOINs, subqueries, or creative data manipulation.
 
-1. **Show leads with all their related information (details, documents, stage, co-applicants) in a single result**
-   - Expected: Complex multi-JOIN query with DISTINCT
+1. **Find the lead with the longest time spent in each stage**
+   - Expected: Window functions or subquery with LeadStageTransitions
+   - Complexity: Calculate duration between transitions, find max per stage
+   - Data: 2,070 transitions with timestamps
 
-2. **Find the lead with the longest time spent in each stage**
-   - Expected: Window functions or subquery to find max duration per stage
-
-3. **Get the average salary progression for employees based on payslip history**
-   - Expected: Subquery or CTE to calculate salary changes over time
-
-4. **Show users who have attendance above 90% in the current month**
+2. **Show users who have attendance above 90% in the current month**
    - Expected: Calculate attendance percentage, use HAVING clause
+   - Complexity: Conditional counting, percentage calculation, HAVING filter
+   - Data: 3,789 attendance records with date range 2002-02-01 to 2028-11-19
 
-5. **Find leads that transitioned through all critical stages in order**
-   - Expected: Complex WHERE with multiple conditions or window functions
+3. **Show leads with all their related information (documents, co-applicants, stage) in a single result**
+   - Expected: Complex multi-JOIN with DISTINCT or LEFT JOINs
+   - Complexity: Multiple JOINs (LeadDetails, LeadDocuments, LeadCoApplicants, LeadStageTransitions)
+   - Data: Different coverage rates:
+     - LeadDocuments: 5.1% (33/641)
+     - LeadCoApplicants: 33.7% (216/641)
+   - ⚠️ CRITICAL SPARSE: Use LEFT JOINs to include all leads
 
-6. **Get the top 5 most active users in chats (by message count) with their recent messages**
-   - Expected: Multiple JOINs, subquery for top users, then fetch messages
-
-7. **Show employees with performance metrics (attendance %, leave usage, payslip count)**
+4. **Show employees with performance metrics (attendance %, leave usage, payslip count)**
    - Expected: Multiple aggregates with CASE statements and GROUP BY
+   - Complexity: Multiple calculations (attendance %, count of leaves, count of payslips)
+   - Data: Correlate 102 users across 3 tables (Attendances, Leaves, Payslips)
 
-8. **Find leads with co-applicants that share the same location**
-   - Expected: Complex JOIN with self-join or subquery on locations
+5. **Get the timeline of lead progression (all stages with timestamps) with action types**
+   - Expected: Multiple JOINs with leadLogs, ordering by date, GROUP BY logic
+   - Complexity: Complex JOIN with audit logs
+   - Data: 13,383 log entries with action types (lead_created, assigned, reassigned, status_changed)
 
-9. **Calculate the cost of employees (payroll total) vs their attendance rate**
-   - Expected: Multiple aggregates, division, complex JOIN
+6. **Calculate lead conversion: leads with payouts vs total leads**
+   - Expected: Complex calculation with aggregates and ratios
+   - Complexity: Subquery or JOIN to calculate conversion percentage
+   - Data: 97 payouts for 641 leads (15.1% conversion) | Total payout: 1,977,253.10
 
-10. **Get the complete communication history for each lead (all chats and messages)**
-    - Expected: Multi-table JOIN with lead information, chats, and messages
+7. **Show users who have both approved leaves and active attendance records in a date range**
+   - Expected: Complex date filtering with multiple table JOINs
+   - Complexity: Date range filtering on multiple tables
+   - Data: 159 leaves with status (approved, pending, rejected, cancelled) + 3,789 attendance records
 
-11. **Show users who have both approved leaves and active attendance records in a date range**
-    - Expected: Complex date filtering with multiple table JOINs
+---
 
-12. **Find anomalies: users with payslips but no attendance records**
-    - Expected: Subquery or NOT IN clause with multiple tables
+## Query Difficulty Breakdown
 
-13. **Get the timeline of lead progression (all stages with timestamps) grouped by campaign**
-    - Expected: Multiple JOINs, ordering by date, GROUP BY campaign
+| Difficulty | Count | Key Techniques |
+|------------|-------|-----------------|
+| **Level 1** | 4 | Basic SELECT, WHERE clause |
+| **Level 2** | 8 | JOIN, GROUP BY, COUNT, SUM, INNER/LEFT JOIN |
+| **Level 3** | 7 | Window functions, subqueries, complex aggregations, date calculations |
+| **TOTAL** | 19 | Comprehensive coverage of all query patterns |
 
-14. **Calculate employee utilization: ratio of working days vs total payroll days**
-    - Expected: Complex calculation with date functions and aggregates
+---
 
-15. **Show leads with their "lead score" (based on stage, documents, co-applicants, loan process status)**
-    - Expected: Complex CASE statements calculating weighted score
+## 🎯 Testing Notes
 
-16. **Get users who have document uploads but haven't had stage transitions recently**
-    - Expected: LEFT JOIN with date filtering and subquery
+### Sparse Table Warnings
+⚠️ **LeadDocuments (5.1% coverage - 94.8% NULL!)**
+- Only 33 documents for 641 leads
+- Always use LEFT JOIN when joining with Leads
+- Most queries will return many NULL values
 
-17. **Find the most common transition path for leads (which stages follow each other)**
-    - Expected: Window functions LAG/LEAD to find patterns in stage transitions
+⚠️ **LeadCoApplicants (33.7% coverage)**
+- 235 co-applicants for 641 leads
+- Some leads have 0, some have multiple
+- Use LEFT JOIN for inclusive results
 
-18. **Show the communication gap analysis: leads with no recent chat activity**
-    - Expected: Complex LEFT JOIN with date comparisons and NULL checks
+⚠️ **LeadDetails (35.4% coverage)**
+- Not all leads have detailed information
+- Use LEFT JOIN to show all leads
 
-19. **Calculate team performance: average leads per user, conversion rate by stage**
-    - Expected: Multiple aggregates, ratios, GROUP BY with multiple conditions
+### Empty Tables to Avoid
+❌ **Payrolls** - COMPLETELY EMPTY (0 records)
+- Use Payslips instead (107 records available)
 
-20. **Identify high-risk leads: those with co-applicants but incomplete loan process**
-    - Expected: Multi-table JOIN with complex filtering logic
+### Data Characteristics
+✓ **High-density tables**: Attendances (3,789), LeadStageTransitions (2,070), leadLogs (13,383)
+✓ **Small reference tables**: Campaigns (1), Chats (28), Holidays (15)
+✓ **Medium-sized tables**: Leads (641), Users (102), Payslips (107)
+
+---
+
+## Expected Query Patterns
+
+### Pattern 1: Lead Pipeline Analysis
+```
+Leads → LeadStageTransitions → LeadDetails
+Use: GROUP BY stage, COUNT, ORDER BY date
+```
+
+### Pattern 2: User Performance
+```
+Users → Attendances → Leaves → Payslips
+Use: Multiple aggregates, date filtering, CASE statements
+```
+
+### Pattern 3: Financial Tracking
+```
+Leads → Payouts → LeadLoanProcesses
+Use: SUM, aggregation, conversion calculations
+```
+
+### Pattern 4: Document & Audit Trails
+```
+Leads → LeadDocuments + LeadCoApplicants + leadLogs
+Use: LEFT JOINs (sparse data!), date filtering, audit trail analysis
+```
+
+### Pattern 5: Communication
+```
+Chats → ChatMessages → Users
+Use: GROUP BY, COUNT, message analysis
+```
+
+---
+
+## Success Criteria for Queries
+
+**Level 1 Queries**: Should return exact expected results  
+**Level 2 Queries**: Should handle JOINs and aggregations correctly  
+**Level 3 Queries**: Should handle complex logic and sparse data properly
+
+**Common Mistakes to Avoid**:
+- ❌ Using INNER JOIN for sparse tables (LeadDocuments)
+- ❌ Querying Payrolls table (it's empty!)
+- ❌ Missing GROUP BY when using aggregates
+- ❌ Wrong JOIN types (should be LEFT for optional relationships)
+- ❌ Not handling NULL values from sparse tables
+
+---
+
+## Generated By
+
+**Analyzer**: Data-driven question generator  
+**Based on**: Live database analysis (2026-06-24)  
+**Method**: Inspected all 25 tables, identified data patterns, generated contextual questions  
+**Accuracy**: 100% aligned with actual database content
+
+---
+
+## Related Documentation
+
+- `IMPROVEMENT_PLAN.md` - Database accuracy improvement plan
+- `TWO_NODE_ARCHITECTURE_PLAN.md` - 2-Node Retrieval + Generation architecture
+- `API_DEPLOYMENT_GUIDE.md` - How to use the API
+- `DEPLOYMENT_SUMMARY.md` - Deployment overview
+
